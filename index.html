@@ -1,0 +1,1307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>AI Resource &amp; Schedule Optimizer</title>
+<style>
+  :root{
+    --bg:#0A0E13; --panel:#12181F; --panel-alt:#161D26; --panel-hi:#1B232D;
+    --border:#232B35; --border-soft:#1B222B;
+    --text:#DDE3E8; --text-dim:#8A96A3; --text-faint:#5B6672;
+    --teal:#2FB8AC; --teal-dim:rgba(47,184,172,.15);
+    --blue:#4C8DFF; --blue-dim:rgba(76,141,255,.15);
+    --green:#34D399; --green-dim:rgba(52,211,153,.15);
+    --amber:#E8A93A; --amber-dim:rgba(232,169,58,.15);
+    --red:#E8574A; --red-dim:rgba(232,87,74,.15);
+    --purple:#9B87F5; --purple-dim:rgba(155,135,245,.15);
+    --mono:'SF Mono','Consolas','Monaco',monospace;
+    --sans:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;
+    --disp:'Segoe UI Semibold',-apple-system,sans-serif;
+  }
+  *{box-sizing:border-box;}
+  body{ margin:0; background:var(--bg); color:var(--text); font-family:var(--sans); font-size:14px; }
+  ::-webkit-scrollbar{height:8px; width:8px;} ::-webkit-scrollbar-thumb{background:var(--border); border-radius:4px;}
+
+  .topbar{ display:flex; align-items:center; gap:14px; padding:12px 22px; border-bottom:1px solid var(--border); background:linear-gradient(180deg,#0D1319,#0A0E13); position:sticky; top:0; z-index:30; flex-wrap:wrap; row-gap:8px;}
+  .brand{ display:flex; align-items:center; gap:10px; }
+  .brand .dot{ width:10px; height:10px; border-radius:50%; background:var(--teal); box-shadow:0 0 8px var(--teal); animation:pulse 2.4s infinite; flex:none;}
+  @keyframes pulse{ 0%,100%{opacity:1;} 50%{opacity:.35;} }
+  .brand h1{ font-family:var(--disp); font-size:14px; font-weight:700; margin:0; letter-spacing:.02em; text-transform:uppercase; }
+  .brand .tag{ font-family:var(--mono); font-size:9.5px; color:var(--text-dim); }
+  .proj-name-input{ background:transparent; border:none; color:var(--text); font-family:var(--disp); font-size:14px; font-weight:700; text-transform:uppercase; letter-spacing:.02em; border-bottom:1px dashed var(--border); padding:2px 0; width:260px;}
+  .proj-name-input:focus{ outline:none; border-color:var(--teal); }
+  .nav{ display:flex; gap:2px; flex-wrap:wrap; }
+  .nav button{ background:transparent; border:1px solid transparent; color:var(--text-dim); font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.06em; padding:7px 12px; border-radius:6px; cursor:pointer; }
+  .nav button:hover{ color:var(--text); background:var(--panel-alt); }
+  .nav button.active{ color:var(--bg); background:var(--teal); font-weight:700; }
+  .topbar-right{ margin-left:auto; display:flex; align-items:center; gap:8px; flex-wrap:wrap; }
+  select, .btn{ font-family:var(--mono); font-size:11px; }
+  select{ background:var(--panel-alt); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:7px 9px; }
+
+  .wrap{ max-width:1280px; margin:0 auto; padding:22px; }
+
+  .card{ background:var(--panel); border:1px solid var(--border); border-radius:10px; padding:16px 18px; }
+  .grid{ display:grid; gap:14px; }
+  .grid-4{ grid-template-columns:repeat(4,1fr); }
+  .grid-3{ grid-template-columns:repeat(3,1fr); }
+  .grid-2{ grid-template-columns:1fr 1fr; }
+  h2.h{ font-family:var(--disp); font-size:12px; text-transform:uppercase; letter-spacing:.12em; color:var(--text-dim); margin:0 0 14px; display:flex; align-items:center; gap:8px; justify-content:space-between;}
+  h2.h .h-left{ display:flex; align-items:center; gap:8px; }
+  .section{ margin-bottom:28px; }
+  .muted{ color:var(--text-dim); }
+  .small{ font-size:12px; }
+  .mono{ font-family:var(--mono); }
+
+  .sig{ width:11px; height:11px; border-radius:50%; display:inline-block; flex:none; }
+  .sig-green{ background:var(--green); box-shadow:0 0 6px var(--green); }
+  .sig-amber{ background:var(--amber); box-shadow:0 0 6px var(--amber); }
+  .sig-red{ background:var(--red); box-shadow:0 0 6px var(--red); }
+
+  .kpi{ position:relative; overflow:hidden; }
+  .kpi .label{ font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-dim); }
+  .kpi .val{ font-family:var(--disp); font-size:30px; font-weight:700; margin-top:6px; }
+  .kpi .sub{ font-size:11px; color:var(--text-dim); margin-top:4px; }
+  .kpi .accent{ position:absolute; top:0; left:0; right:0; height:3px; }
+
+  .btn{ text-transform:uppercase; letter-spacing:.06em; padding:8px 14px; border-radius:7px; border:1px solid var(--border); background:var(--panel-alt); color:var(--text); cursor:pointer; display:inline-flex; align-items:center; gap:7px; }
+  .btn:hover{ border-color:var(--teal); color:var(--teal); }
+  .btn-primary{ background:var(--teal); border-color:var(--teal); color:#04211D; font-weight:700; }
+  .btn-primary:hover{ opacity:.9; color:#04211D; }
+  .btn-ai{ background:var(--purple); border-color:var(--purple); color:#1A1330; font-weight:700; }
+  .btn-ai:hover{ opacity:.9; color:#1A1330; }
+  .btn-danger:hover{ border-color:var(--red); color:var(--red); }
+  .btn-sm{ padding:5px 9px; font-size:10px; }
+  .btn:disabled{ opacity:.5; cursor:not-allowed; }
+
+  input[type=number], input[type=text], textarea{ background:var(--panel-alt); border:1px solid var(--border); color:var(--text); border-radius:6px; padding:6px 8px; font-family:var(--mono); font-size:12px; }
+  input[type=range]{ width:100%; accent-color:var(--teal); }
+  textarea{ width:100%; font-family:var(--sans); resize:vertical; }
+  label.field{ display:block; margin-bottom:10px; }
+  label.field .fl{ display:block; font-family:var(--mono); font-size:10px; text-transform:uppercase; letter-spacing:.08em; color:var(--text-dim); margin-bottom:4px; }
+  label.field input, label.field select, label.field textarea{ width:100%; }
+
+  .gantt-wrap{ overflow-x:auto; border:1px solid var(--border); border-radius:10px; background:var(--panel); }
+  .g-row{ display:flex; border-bottom:1px solid var(--border-soft); align-items:stretch; }
+  .g-label{ position:sticky; left:0; z-index:2; width:290px; min-width:290px; background:var(--panel); border-right:1px solid var(--border); padding:8px 12px; display:flex; flex-direction:column; justify-content:center; gap:3px;}
+  .g-label .tname{ font-size:12px; font-weight:600; line-height:1.3; display:flex; justify-content:space-between; gap:6px;}
+  .g-label .tmeta{ display:flex; align-items:center; gap:6px; font-family:var(--mono); font-size:10px; color:var(--text-dim); flex-wrap:wrap;}
+  .g-label .tmeta input, .g-label .tmeta select{ padding:2px 4px; font-size:10px; }
+  .g-label .tmeta input[type=number]{ width:38px; }
+  .g-phase-row .g-label{ background:var(--panel-hi); font-family:var(--mono); font-size:10.5px; text-transform:uppercase; letter-spacing:.08em; font-weight:700; color:var(--text-dim); }
+  .g-phase-row{ border-bottom:1px solid var(--border); }
+  .g-track{ position:relative; height:40px; flex:none; }
+  .g-bar{ position:absolute; top:9px; height:20px; border-radius:4px; display:flex; align-items:center; padding:0 6px; font-family:var(--mono); font-size:9.5px; font-weight:700; color:#04141A; white-space:nowrap; overflow:hidden; }
+  .g-bar .ring{ position:absolute; inset:-3px; border-radius:6px; border:2px solid var(--red); }
+  .week-col{ width:22px; flex:none; border-right:1px solid var(--border-soft); }
+  .g-header{ display:flex; position:sticky; top:0; z-index:3; background:var(--panel-hi); border-bottom:1px solid var(--border); }
+  .g-header .g-label{ background:var(--panel-hi); }
+  .wk-tick{ width:22px; flex:none; text-align:center; font-family:var(--mono); font-size:9px; color:var(--text-dim); padding-top:8px; border-right:1px solid var(--border-soft); }
+  .x-del{ background:none; border:none; color:var(--text-faint); cursor:pointer; font-size:12px; padding:0 2px;}
+  .x-del:hover{ color:var(--red); }
+
+  .res-row{ display:flex; align-items:center; gap:12px; padding:10px 0; border-bottom:1px solid var(--border-soft); }
+  .res-name{ width:230px; min-width:230px; font-size:12.5px; font-weight:600; display:flex; align-items:center; gap:8px; }
+  .res-cap{ font-family:var(--mono); font-size:10px; color:var(--text-dim); }
+  .res-cells{ display:flex; gap:2px; overflow-x:auto; }
+  .res-cell{ width:16px; height:22px; border-radius:2px; flex:none; }
+
+  .chip{ display:inline-flex; align-items:center; gap:5px; font-family:var(--mono); font-size:10px; padding:3px 8px; border-radius:20px; border:1px solid var(--border); }
+
+  .risk-card{ border-left:3px solid var(--amber); position:relative; }
+  .risk-card h3{ font-size:13px; margin:0 0 8px; padding-right:20px;}
+  .risk-card .lbl{ font-family:var(--mono); font-size:9.5px; text-transform:uppercase; letter-spacing:.1em; color:var(--text-dim); margin-top:10px; }
+  .risk-card ul{ margin:6px 0 0; padding-left:18px; font-size:12.5px; line-height:1.6; }
+  .risk-card .x-del{ position:absolute; top:12px; right:12px; }
+
+  .eva-table{ width:100%; border-collapse:collapse; }
+  .eva-table td{ padding:9px 6px; border-bottom:1px solid var(--border-soft); font-size:13px; }
+  .eva-table td.k{ color:var(--text-dim); }
+  .eva-table td.v{ font-family:var(--mono); text-align:right; font-weight:700; }
+
+  .ai-diff{ display:flex; align-items:center; gap:10px; padding:8px 0; border-bottom:1px solid var(--border-soft); font-size:12.5px; }
+  .ai-diff .arrow{ color:var(--purple); font-family:var(--mono); }
+
+  .chat-fab{ position:fixed; bottom:22px; right:22px; z-index:50; background:var(--purple); color:#1A1330; border:none; border-radius:30px; padding:12px 18px; font-family:var(--mono); font-size:12px; font-weight:700; text-transform:uppercase; letter-spacing:.05em; cursor:pointer; box-shadow:0 6px 20px rgba(155,135,245,.4); display:flex; align-items:center; gap:8px;}
+  .chat-panel{ position:fixed; bottom:80px; right:22px; width:360px; max-height:70vh; background:var(--panel); border:1px solid var(--border); border-radius:12px; z-index:50; display:flex; flex-direction:column; box-shadow:0 10px 40px rgba(0,0,0,.5); overflow:hidden;}
+  .chat-head{ padding:12px 14px; border-bottom:1px solid var(--border); display:flex; justify-content:space-between; align-items:center; background:var(--panel-hi);}
+  .chat-head .t{ font-family:var(--mono); font-size:11px; text-transform:uppercase; letter-spacing:.08em; color:var(--purple); }
+  .chat-body{ flex:1; overflow-y:auto; padding:12px 14px; display:flex; flex-direction:column; gap:10px; min-height:120px; }
+  .msg{ font-size:12.5px; line-height:1.5; padding:8px 10px; border-radius:8px; max-width:88%; }
+  .msg.user{ align-self:flex-end; background:var(--teal-dim); border:1px solid var(--teal); }
+  .msg.ai{ align-self:flex-start; background:var(--purple-dim); border:1px solid var(--purple); white-space:pre-wrap; }
+  .msg.hint{ align-self:center; color:var(--text-faint); font-family:var(--mono); font-size:10.5px; }
+  .chat-input{ display:flex; gap:6px; padding:10px; border-top:1px solid var(--border); }
+  .chat-input input{ flex:1; }
+  .close-x{ background:none; border:none; color:var(--text-dim); cursor:pointer; font-size:16px; }
+
+  .toast{ position:fixed; top:16px; left:50%; transform:translateX(-50%); background:var(--panel-hi); border:1px solid var(--teal); color:var(--teal); font-family:var(--mono); font-size:11px; padding:8px 16px; border-radius:20px; z-index:60; }
+
+  .modal-bg{ position:fixed; inset:0; background:rgba(0,0,0,.6); z-index:70; display:flex; align-items:center; justify-content:center; }
+  .modal{ background:var(--panel); border:1px solid var(--border); border-radius:12px; padding:20px; width:420px; max-height:80vh; overflow-y:auto; }
+
+  .addbar{ display:flex; gap:8px; flex-wrap:wrap; align-items:flex-end; padding:14px; background:var(--panel-alt); border-radius:8px; margin-bottom:14px; }
+  .addbar label.field{ margin-bottom:0; min-width:120px; flex:1;}
+
+  @media (max-width:900px){
+    .grid-4{ grid-template-columns:repeat(2,1fr);} .grid-3{grid-template-columns:1fr;} .grid-2{grid-template-columns:1fr;}
+    .nav{ display:none; }
+  }
+</style>
+</head>
+<body>
+
+<div class="topbar">
+  <div class="brand">
+    <span class="dot"></span>
+    <div>
+      <input class="proj-name-input" id="projNameInput" onchange="renameProject(this.value)"/>
+      <div class="tag">AI RESOURCE &amp; SCHEDULE OPTIMIZER · WORKS WITH ANY PROJECT</div>
+    </div>
+  </div>
+  <div class="nav" id="nav"></div>
+  <div class="topbar-right">
+    <span id="bridgeBadge"></span>
+    <select id="projSwitcher" onchange="onSwitcherChange(this.value)"></select>
+    <button class="btn btn-sm" onclick="saveProject()">💾 Save</button>
+    <button class="btn btn-sm" onclick="exportProject()">⇩ Export</button>
+    <label class="btn btn-sm" style="cursor:pointer;">⇧ Import<input type="file" accept="application/json" style="display:none;" onchange="importProject(event)"/></label>
+  </div>
+</div>
+
+<div class="wrap" id="content"></div>
+<div id="toastHost"></div>
+
+<button class="chat-fab" id="chatFab" onclick="toggleChat()">✦ AI Assistant</button>
+<div class="chat-panel" id="chatPanel" style="display:none;"></div>
+
+<script>
+/* ============ AI BRIDGE ============ */
+// This app talks to Claude through the same server that's hosting this page (app.py),
+// which holds the Anthropic API key server-side. A relative path means this works
+// identically whether run locally or deployed to a public URL.
+const AI_ENDPOINT = "/v1/messages";
+let bridgeStatus = 'unknown'; // 'connected' | 'offline' | 'unknown'
+
+async function checkBridge(){
+  try{
+    const r = await fetch(AI_ENDPOINT.replace('/v1/messages','/health'), { method:'GET' });
+    bridgeStatus = r.ok ? 'connected' : 'offline';
+  }catch(e){ bridgeStatus = 'offline'; }
+  renderBridgeBadge();
+}
+function renderBridgeBadge(){
+  const el = document.getElementById('bridgeBadge');
+  if(!el) return;
+  if(bridgeStatus==='connected') el.innerHTML = `<span class="badge-live" style="color:var(--green); border-color:var(--green);"><span class="dot2" style="background:var(--green);"></span>AI BRIDGE CONNECTED</span>`;
+  else if(bridgeStatus==='offline') el.innerHTML = `<span class="badge-live" style="color:var(--amber); border-color:var(--amber); cursor:pointer;" onclick="checkBridge()" title="Click to retry"><span class="dot2" style="background:var(--amber);"></span>AI OFFLINE — using built-in engine</span>`;
+  else el.innerHTML = `<span class="badge-live"><span class="dot2"></span>CHECKING AI BRIDGE…</span>`;
+}
+
+/* ============ BUILT-IN LOCAL ENGINE (no server, no API key — always works) ============ */
+// This is a self-contained rule-based generator and scheduler. It runs entirely in the
+// browser. The app prefers the Claude AI bridge when connected (smarter output), but
+// Generate Project and AI Optimizer both fall back to this automatically, so the MVP
+// never depends on an external call to function.
+
+const ARCHETYPES = {
+  construction: {
+    label: 'Construction / Renovation', defaultWeeks: 20,
+    keywords: ['renovat','construct','build','house','kitchen','bathroom','flooring','contractor','site','facility','centre','center','building','apartment','flat','tunnel','infrastructure'],
+    resources: [
+      {key:'pmo', name:'Project Management Team', capacity:2},
+      {key:'design', name:'Design / Architect Team', capacity:2},
+      {key:'permits', name:'Permitting & Compliance', capacity:1},
+      {key:'crew', name:'Construction / Contractor Crew', capacity:1},
+      {key:'me', name:'M&E Team (Electrical / Plumbing)', capacity:1},
+      {key:'finish', name:'Finishing & Fit-Out Team', capacity:2},
+    ],
+    tasks: [
+      {name:'Feasibility & Site Assessment', phase:'1 · Initiation', resource:'pmo', sf:0.00, df:0.08},
+      {name:'Budget & Funding Plan', phase:'1 · Initiation', resource:'pmo', sf:0.03, df:0.08},
+      {name:'Concept & Schematic Design', phase:'2 · Design', resource:'design', sf:0.10, df:0.15},
+      {name:'Detailed Design & Engineering', phase:'2 · Design', resource:'design', sf:0.20, df:0.12},
+      {name:'Permit Application & Approval', phase:'2 · Design', resource:'permits', sf:0.25, df:0.15},
+      {name:'Contractor Tender & Award', phase:'3 · Procurement', resource:'pmo', sf:0.30, df:0.10},
+      {name:'Materials Procurement', phase:'3 · Procurement', resource:'pmo', sf:0.35, df:0.12},
+      {name:'Site Preparation', phase:'4 · Construction', resource:'crew', sf:0.42, df:0.08},
+      {name:'Structural Works', phase:'4 · Construction', resource:'crew', sf:0.48, df:0.20},
+      {name:'Electrical & Plumbing Rough-In', phase:'4 · Construction', resource:'me', sf:0.58, df:0.15},
+      {name:'Interior Finishes', phase:'5 · Fit-Out', resource:'finish', sf:0.75, df:0.15},
+      {name:'Furniture & Fixtures', phase:'5 · Fit-Out', resource:'finish', sf:0.85, df:0.08},
+      {name:'Inspection & Handover', phase:'6 · Closeout', resource:'pmo', sf:0.92, df:0.08},
+    ],
+    risks: [
+      {title:'Permit & Regulatory Delay', risk:'Approval timelines are often the biggest schedule unknown.', strategy:['Engage authorities early','Submit complete documentation','Build schedule buffer around approvals']},
+      {title:'Contractor / Crew Availability', risk:'Construction crews are often a single-threaded, scarce resource.', strategy:['Book crews well in advance','Maintain a backup contractor list','Track progress weekly']},
+      {title:'Budget Overrun', risk:'Ground conditions, material prices, or scope changes can inflate cost.', strategy:['Maintain a contingency reserve','Review costs regularly','Use value engineering where needed']},
+    ],
+  },
+  software: {
+    label: 'Software / App Development', defaultWeeks: 12,
+    keywords: ['app','software','website','platform','code','dev','mvp','api','mobile','saas','application','system','feature','product'],
+    resources: [
+      {key:'pm', name:'Product / Project Owner', capacity:1},
+      {key:'design', name:'Design Team', capacity:1},
+      {key:'backend', name:'Backend Team', capacity:2},
+      {key:'frontend', name:'Frontend / Mobile Team', capacity:2},
+      {key:'qa', name:'QA Team', capacity:1},
+    ],
+    tasks: [
+      {name:'Requirements & Scoping', phase:'1 · Discovery', resource:'pm', sf:0.00, df:0.08},
+      {name:'UX Research & Wireframes', phase:'1 · Discovery', resource:'design', sf:0.05, df:0.12},
+      {name:'UI Design', phase:'2 · Design', resource:'design', sf:0.15, df:0.15},
+      {name:'Backend Architecture & Setup', phase:'3 · Build', resource:'backend', sf:0.25, df:0.15},
+      {name:'Core Feature Development', phase:'3 · Build', resource:'backend', sf:0.35, df:0.30},
+      {name:'Frontend / Mobile Development', phase:'3 · Build', resource:'frontend', sf:0.35, df:0.30},
+      {name:'Integration', phase:'3 · Build', resource:'backend', sf:0.60, df:0.12},
+      {name:'QA & Bug Fixing', phase:'4 · Testing', resource:'qa', sf:0.70, df:0.18},
+      {name:'User Acceptance Testing', phase:'4 · Testing', resource:'qa', sf:0.85, df:0.08},
+      {name:'Launch Prep & Deployment', phase:'5 · Launch', resource:'pm', sf:0.92, df:0.08},
+    ],
+    risks: [
+      {title:'Scope Creep', risk:'Requirements can expand mid-sprint without a clear backlog owner.', strategy:['Assign a single product owner','Time-box scope reviews each sprint']},
+      {title:'Integration Risk', risk:'Frontend and backend work streams may drift out of sync.', strategy:['Define API contracts early','Integrate continuously, not at the end']},
+      {title:'QA Bottleneck', risk:'Testing capacity is often the smallest team relative to build output.', strategy:['Automate regression tests','Start QA involvement during build, not after']},
+    ],
+  },
+  event: {
+    label: 'Event Planning', defaultWeeks: 10,
+    keywords: ['event','launch event','festival','conference','wedding','concert','ceremony','summit','exhibition','gala'],
+    resources: [
+      {key:'pm', name:'Event Coordination Team', capacity:2},
+      {key:'vendor', name:'Vendor & Logistics Team', capacity:1},
+      {key:'marketing', name:'Marketing & Promotion Team', capacity:1},
+      {key:'ops', name:'On-Site Operations Team', capacity:2},
+    ],
+    tasks: [
+      {name:'Concept & Budget Approval', phase:'1 · Planning', resource:'pm', sf:0.00, df:0.10},
+      {name:'Venue Selection & Booking', phase:'1 · Planning', resource:'vendor', sf:0.08, df:0.12},
+      {name:'Vendor & Supplier Contracts', phase:'2 · Logistics', resource:'vendor', sf:0.20, df:0.20},
+      {name:'Program & Talent Confirmation', phase:'2 · Logistics', resource:'pm', sf:0.35, df:0.20},
+      {name:'Marketing & Promotion Campaign', phase:'3 · Promotion', resource:'marketing', sf:0.30, df:0.35},
+      {name:'On-Site Logistics Planning', phase:'4 · Preparation', resource:'ops', sf:0.65, df:0.15},
+      {name:'Rehearsal & Final Checks', phase:'4 · Preparation', resource:'ops', sf:0.85, df:0.08},
+      {name:'Event Day Execution', phase:'5 · Event', resource:'ops', sf:0.94, df:0.06},
+      {name:'Post-Event Wrap-Up & Review', phase:'6 · Closeout', resource:'pm', sf:0.96, df:0.04},
+    ],
+    risks: [
+      {title:'Vendor No-Show / Delay', risk:'Third-party vendors are outside direct control.', strategy:['Confirm contracts with penalty clauses','Have backup vendors on call']},
+      {title:'Low Attendance / Turnout', risk:'Promotion may not convert to attendance.', strategy:['Start promotion earlier','Track RSVPs and adjust marketing spend']},
+      {title:'On-Site Logistics Failure', risk:'Setup, AV, or timing issues on the day itself.', strategy:['Run a full rehearsal','Assign a dedicated on-site lead with a contingency plan']},
+    ],
+  },
+  marketing: {
+    label: 'Marketing Campaign', defaultWeeks: 8,
+    keywords: ['campaign','marketing','brand','advertising','social media','promotion','rebrand','launch campaign'],
+    resources: [
+      {key:'strategy', name:'Strategy & Planning Team', capacity:1},
+      {key:'creative', name:'Creative / Content Team', capacity:2},
+      {key:'media', name:'Media Buying Team', capacity:1},
+      {key:'analytics', name:'Analytics Team', capacity:1},
+    ],
+    tasks: [
+      {name:'Campaign Strategy & Goals', phase:'1 · Strategy', resource:'strategy', sf:0.00, df:0.12},
+      {name:'Audience & Market Research', phase:'1 · Strategy', resource:'analytics', sf:0.08, df:0.12},
+      {name:'Creative Concept Development', phase:'2 · Creative', resource:'creative', sf:0.20, df:0.20},
+      {name:'Content Production', phase:'2 · Creative', resource:'creative', sf:0.35, df:0.25},
+      {name:'Media Planning & Buying', phase:'3 · Media', resource:'media', sf:0.45, df:0.20},
+      {name:'Campaign Launch', phase:'4 · Launch', resource:'media', sf:0.70, df:0.10},
+      {name:'Performance Monitoring & Optimization', phase:'5 · Optimization', resource:'analytics', sf:0.78, df:0.15},
+      {name:'Final Reporting & Review', phase:'6 · Closeout', resource:'analytics', sf:0.93, df:0.07},
+    ],
+    risks: [
+      {title:'Underperforming Channels', risk:'Media spend may not convert as forecast.', strategy:['Set early checkpoint metrics','Reallocate budget mid-campaign if needed']},
+      {title:'Creative Delays', risk:'Content production can bottleneck the launch date.', strategy:['Lock creative concept early','Build review buffer before launch']},
+    ],
+  },
+  research: {
+    label: 'Research Project', defaultWeeks: 16,
+    keywords: ['research','study','survey','experiment','thesis','dissertation','literature review','data collection'],
+    resources: [
+      {key:'lead', name:'Research Lead', capacity:1},
+      {key:'team', name:'Research Team', capacity:2},
+      {key:'data', name:'Data & Analysis Team', capacity:1},
+      {key:'admin', name:'Ethics & Admin Support', capacity:1},
+    ],
+    tasks: [
+      {name:'Literature Review', phase:'1 · Preparation', resource:'team', sf:0.00, df:0.15},
+      {name:'Research Design & Methodology', phase:'1 · Preparation', resource:'lead', sf:0.10, df:0.12},
+      {name:'Ethics Approval Submission', phase:'1 · Preparation', resource:'admin', sf:0.18, df:0.12},
+      {name:'Data Collection', phase:'2 · Fieldwork', resource:'team', sf:0.30, df:0.30},
+      {name:'Data Cleaning & Processing', phase:'3 · Analysis', resource:'data', sf:0.55, df:0.15},
+      {name:'Data Analysis', phase:'3 · Analysis', resource:'data', sf:0.65, df:0.20},
+      {name:'Findings & Draft Report', phase:'4 · Reporting', resource:'lead', sf:0.82, df:0.12},
+      {name:'Peer Review & Final Write-Up', phase:'4 · Reporting', resource:'lead', sf:0.92, df:0.08},
+    ],
+    risks: [
+      {title:'Ethics Approval Delay', risk:'IRB/ethics review timelines are often unpredictable.', strategy:['Submit early with complete documentation','Build in buffer before fieldwork']},
+      {title:'Low Participant Response', risk:'Data collection may fall short of sample targets.', strategy:['Plan multiple recruitment channels','Set a minimum viable sample size checkpoint']},
+    ],
+  },
+  generic: {
+    label: 'General Project', defaultWeeks: 12,
+    keywords: [],
+    resources: [
+      {key:'pmo', name:'Project Management', capacity:2},
+      {key:'teamA', name:'Core Team', capacity:2},
+      {key:'teamB', name:'Support Team', capacity:1},
+      {key:'qa', name:'Quality / Review', capacity:1},
+    ],
+    tasks: [
+      {name:'Project Initiation & Charter', phase:'1 · Initiation', resource:'pmo', sf:0.00, df:0.10},
+      {name:'Requirements & Planning', phase:'1 · Initiation', resource:'pmo', sf:0.08, df:0.15},
+      {name:'Resource & Budget Planning', phase:'2 · Planning', resource:'pmo', sf:0.20, df:0.10},
+      {name:'Core Execution — Stream A', phase:'3 · Execution', resource:'teamA', sf:0.32, df:0.25},
+      {name:'Core Execution — Stream B', phase:'3 · Execution', resource:'teamB', sf:0.45, df:0.25},
+      {name:'Review & Quality Check', phase:'4 · Review', resource:'qa', sf:0.72, df:0.15},
+      {name:'Finalization & Adjustments', phase:'4 · Review', resource:'teamA', sf:0.82, df:0.10},
+      {name:'Closeout & Handover', phase:'5 · Closeout', resource:'pmo', sf:0.94, df:0.06},
+    ],
+    risks: [
+      {title:'Unclear Ownership', risk:'Tasks without a clear owner tend to slip.', strategy:['Assign one accountable owner per task','Review ownership at each checkpoint']},
+      {title:'Resource Contention', risk:'Shared team members get pulled across concurrent tasks.', strategy:['Track weekly load per resource','Sequence conflicting tasks instead of overlapping them']},
+    ],
+  },
+};
+
+function detectArchetype(lowerDesc){
+  let best = 'generic', bestScore = 0;
+  for(const [key, arch] of Object.entries(ARCHETYPES)){
+    const score = arch.keywords.filter(k=>lowerDesc.includes(k)).length;
+    if(score > bestScore){ bestScore = score; best = key; }
+  }
+  return best;
+}
+function parseWeeks(desc, explicit){
+  if(explicit) return Math.max(1, parseInt(explicit));
+  const lower = desc.toLowerCase();
+  let m = lower.match(/(\d+)\s*-?\s*(week|wk)/);
+  if(m) return Math.max(1, parseInt(m[1]));
+  m = lower.match(/(\d+)\s*-?\s*(month|mo)\b/);
+  if(m) return Math.max(1, Math.round(parseInt(m[1]) * 4.33));
+  return null;
+}
+function parseComponents(desc){
+  const m = desc.match(/(?:covering|including|involving)\s+([^.]+)/i);
+  if(!m) return [];
+  return m[1].split(/,|\band\b/i).map(s=>s.trim()).filter(s=>s.length>1 && s.length<40).slice(0,8);
+}
+function titleCase(s){ return s.replace(/\b\w/g, c=>c.toUpperCase()); }
+
+function localGenerateProject(desc, explicitWeeks, includeRisks){
+  const lower = desc.toLowerCase();
+  const archKey = detectArchetype(lower);
+  const arch = ARCHETYPES[archKey];
+  const totalWeeks = parseWeeks(desc, explicitWeeks) || arch.defaultWeeks;
+  const components = parseComponents(desc);
+
+  const resources = arch.resources.map(r=>({ id: r.key, name: r.name, capacity: r.capacity }));
+  let templateTasks = arch.tasks.map(x=>({...x}));
+
+  if(components.length){
+    const phaseTotals = {};
+    templateTasks.forEach(x=> phaseTotals[x.phase] = (phaseTotals[x.phase]||0) + x.df);
+    const corePhase = Object.entries(phaseTotals).sort((a,b)=>b[1]-a[1])[0][0];
+    const coreRange = templateTasks.filter(x=>x.phase===corePhase);
+    const coreResources = [...new Set(coreRange.map(x=>x.resource))];
+    const startF = Math.min(...coreRange.map(x=>x.sf));
+    const endF = Math.max(...coreRange.map(x=>x.sf+x.df));
+    const span = endF - startF;
+    const per = span / components.length;
+    const newCoreTasks = components.map((c,i)=>({
+      name: titleCase(c), phase: corePhase,
+      resource: coreResources[i % coreResources.length],
+      sf: startF + i*per, df: per*0.9,
+    }));
+    templateTasks = templateTasks.filter(x=>x.phase!==corePhase).concat(newCoreTasks);
+  }
+
+  let counter = 0;
+  const tasks = templateTasks.map(x=>{
+    counter++;
+    let start = Math.max(1, Math.round(x.sf*totalWeeks)+1);
+    let dur = Math.max(1, Math.round(x.df*totalWeeks));
+    if(start > totalWeeks) start = totalWeeks;
+    if(start + dur - 1 > totalWeeks) dur = Math.max(1, totalWeeks - start + 1);
+    return { id:'T'+counter, name:x.name, phase:x.phase, resource:x.resource, start, dur };
+  }).sort((a,b)=> a.start - b.start);
+
+  return {
+    name: titleCase(desc.split(/[.,]/)[0].slice(0,60)) || arch.label + ' Project',
+    totalWeeks, resources, tasks,
+    risks: includeRisks ? arch.risks.map(r=>({title:r.title, risk:r.risk, strategy:r.strategy})) : [],
+    eva: { week: 1, actualPct: 0, bac: 100, ac: null },
+  };
+}
+
+// Greedy resource-leveling: for each resource, walk its tasks in start-week order and
+// push any task forward to the earliest week that doesn't exceed weekly capacity.
+function localOptimize(project){
+  const tasks = JSON.parse(JSON.stringify(project.tasks));
+  const adjustments = [];
+  project.resources.forEach(r=>{
+    const occ = {};
+    tasks.filter(t=>t.resource===r.id).sort((a,b)=> a.start-b.start || a.dur-b.dur).forEach(t=>{
+      let start = t.start;
+      const fits = s => { for(let w=s; w<s+t.dur; w++){ if((occ[w]||0) >= r.capacity) return false; } return true; };
+      let guard = 0;
+      while(!fits(start) && guard < project.totalWeeks*3){ start++; guard++; }
+      if(start + t.dur - 1 > project.totalWeeks){ start = Math.max(1, project.totalWeeks - t.dur + 1); }
+      for(let w=start; w<start+t.dur; w++){ occ[w] = (occ[w]||0)+1; }
+      if(start !== t.start) adjustments.push({ id:t.id, taskName:t.name, from:t.start, newStart:start });
+      t.start = start;
+    });
+  });
+  return { tasks, adjustments };
+}
+
+/* ============ TEMPLATES ============ */
+const CRL_TEMPLATE = {
+  name: 'Cross Island Line (CRL) Phase 2 — MRT Project',
+  totalWeeks: 26,
+  resources: [
+    {id:'pmo', name:'PMO / Planning Team', capacity:2},
+    {id:'design', name:'Design Team', capacity:2},
+    {id:'procurement', name:'Procurement Team', capacity:1},
+    {id:'siteprep', name:'Site Preparation Crew', capacity:1},
+    {id:'civil', name:'Civil Engineering / TBM Crew', capacity:1},
+    {id:'railway', name:'Railway Systems Team', capacity:2},
+    {id:'testing', name:'Testing & Commissioning Team', capacity:1},
+    {id:'qa', name:'QA / Safety & Closeout Team', capacity:2},
+  ],
+  tasks: [
+    {id:'T1', name:'Feasibility Studies', phase:'1 · Project Planning', resource:'pmo', start:1, dur:2},
+    {id:'T2', name:'Budget Planning', phase:'1 · Project Planning', resource:'pmo', start:1, dur:2},
+    {id:'T3', name:'Risk Assessment', phase:'1 · Project Planning', resource:'pmo', start:2, dur:2},
+    {id:'T4', name:'Environmental Impact Assessment', phase:'1 · Project Planning', resource:'pmo', start:2, dur:3},
+    {id:'T5', name:'Project Scheduling', phase:'1 · Project Planning', resource:'pmo', start:3, dur:1},
+    {id:'T6', name:'Station Architectural Design (6 stations)', phase:'2 · Design Phase', resource:'design', start:3, dur:4},
+    {id:'T7', name:'Tunnel Engineering Design', phase:'2 · Design Phase', resource:'design', start:4, dur:4},
+    {id:'T8', name:'Structural Design', phase:'2 · Design Phase', resource:'design', start:4, dur:3},
+    {id:'T9', name:'Electrical & Mechanical System Design', phase:'2 · Design Phase', resource:'design', start:5, dur:3},
+    {id:'T10', name:'Signalling System Design', phase:'2 · Design Phase', resource:'design', start:6, dur:3},
+    {id:'T11', name:'Tender Preparation', phase:'3 · Procurement', resource:'procurement', start:6, dur:2},
+    {id:'T12', name:'Contractor Selection', phase:'3 · Procurement', resource:'procurement', start:7, dur:2},
+    {id:'T13', name:'Equipment Procurement', phase:'3 · Procurement', resource:'procurement', start:8, dur:3},
+    {id:'T14', name:'Contract Award', phase:'3 · Procurement', resource:'procurement', start:9, dur:1},
+    {id:'T15', name:'Utility Diversion', phase:'4.1 · Site Preparation', resource:'siteprep', start:8, dur:3},
+    {id:'T16', name:'Temporary Traffic Management', phase:'4.1 · Site Preparation', resource:'siteprep', start:9, dur:2},
+    {id:'T17', name:'Safety Barriers & Site Offices', phase:'4.1 · Site Preparation', resource:'siteprep', start:9, dur:2},
+    {id:'T18', name:'Station Excavation — Turf City / King Albert Park', phase:'4.2 · Civil Engineering', resource:'civil', start:10, dur:4},
+    {id:'T19', name:'Station Excavation — Maju / Clementi', phase:'4.2 · Civil Engineering', resource:'civil', start:10, dur:4},
+    {id:'T20', name:'Tunnel Boring Works', phase:'4.2 · Civil Engineering', resource:'civil', start:11, dur:5},
+    {id:'T21', name:'Foundation & Structural Concrete Works', phase:'4.2 · Civil Engineering', resource:'civil', start:13, dur:4},
+    {id:'T22', name:'Rail Track Installation', phase:'4.3 · Railway Installation', resource:'railway', start:15, dur:3},
+    {id:'T23', name:'Power Supply Installation', phase:'4.3 · Railway Installation', resource:'railway', start:15, dur:3},
+    {id:'T24', name:'Signalling & Communications Installation', phase:'4.3 · Railway Installation', resource:'railway', start:17, dur:3},
+    {id:'T25', name:'System Testing', phase:'5 · Testing & Commissioning', resource:'testing', start:19, dur:3},
+    {id:'T26', name:'Safety Inspections', phase:'5 · Testing & Commissioning', resource:'testing', start:20, dur:2},
+    {id:'T27', name:'Trial Train Operations', phase:'5 · Testing & Commissioning', resource:'testing', start:21, dur:2},
+    {id:'T28', name:'Staff Training', phase:'5 · Testing & Commissioning', resource:'qa', start:20, dur:3},
+    {id:'T29', name:'Government Approval', phase:'5 · Testing & Commissioning', resource:'testing', start:22, dur:1},
+    {id:'T30', name:'Final Inspections', phase:'6 · Project Closeout', resource:'qa', start:22, dur:2},
+    {id:'T31', name:'Handover Documentation', phase:'6 · Project Closeout', resource:'qa', start:23, dur:2},
+    {id:'T32', name:'Public Opening', phase:'6 · Project Closeout', resource:'pmo', start:24, dur:1},
+    {id:'T33', name:'Project Evaluation', phase:'6 · Project Closeout', resource:'pmo', start:24, dur:2},
+  ],
+  risks: [
+    {title:'Underground Construction', risk:"Singapore's underground space contains utilities, existing MRT tunnels, and varying soil conditions. Excavation may affect nearby buildings.", strategy:['Use Tunnel Boring Machines (TBMs)','Continuous ground monitoring','Install settlement sensors around nearby buildings','Conduct detailed geological surveys before excavation']},
+    {title:'Environmental Protection', risk:'Some sections of the line are close to environmentally sensitive areas. Construction could affect wildlife and vegetation.', strategy:['Conduct Environmental Impact Assessments (EIA)','Modify tunnel alignments where necessary','Monitor wildlife during construction','Restore affected vegetation after construction']},
+    {title:'Traffic Disruption', risk:'Construction around busy roads may cause traffic congestion.', strategy:['Implement temporary traffic diversions','Schedule heavy construction during off-peak hours','Provide clear public notices and alternative routes','Coordinate with traffic authorities']},
+    {title:'Safety Risks', risk:'Deep excavation and tunnelling increase the risk of worker injuries and equipment accidents.', strategy:['Strict Workplace Safety and Health (WSH) procedures','Regular safety inspections','Worker training and emergency drills','Real-time monitoring of excavation works']},
+    {title:'Budget Overruns', risk:'Unexpected ground conditions, inflation, or material price increases may increase project costs.', strategy:['Maintain contingency funds','Closely monitor project costs','Regular financial reviews','Use value engineering to reduce unnecessary costs']},
+    {title:'Project Delays', risk:'Bad weather, supply chain disruptions, labour shortages, or technical issues may delay the project.', strategy:['Develop detailed project schedules','Maintain backup suppliers','Monitor project milestones weekly','Allocate buffer time for critical activities']},
+    {title:'Community Impact', risk:'Construction noise, dust, and vibration may affect nearby residents and businesses.', strategy:['Install noise barriers','Use dust suppression systems','Limit noisy work to approved hours','Communicate regularly with residents and businesses']},
+  ],
+  eva: { week: 12, actualPct: 42, bac: 500, ac: null },
+};
+
+const BLANK_TEMPLATE = {
+  name: 'New Project',
+  totalWeeks: 12,
+  resources: [
+    {id:'team-a', name:'Team A', capacity:2},
+    {id:'team-b', name:'Team B', capacity:1},
+  ],
+  tasks: [
+    {id:'T1', name:'Kickoff & Requirements', phase:'1 · Initiation', resource:'team-a', start:1, dur:1},
+  ],
+  risks: [],
+  eva: { week: 1, actualPct: 0, bac: 100, ac: null },
+};
+
+const PALETTE = ['#4C8DFF','#2FB8AC','#E8A93A','#E8574A','#9B87F5','#34D399','#F072B6','#7FA8E8'];
+
+/* ============ STATE ============ */
+const state = {
+  project: JSON.parse(JSON.stringify(CRL_TEMPLATE)),
+  projectId: null,
+  savedIndex: [],
+  activeTab: 'overview',
+  chatOpen: false,
+  chatMessages: [],
+  chatLoading: false,
+  optimizing: false,
+  optimizeError: null,
+  lastOptimize: null,
+  toastMsg: null,
+  showAddTask: false,
+  generating: false,
+  generateError: null,
+};
+
+const TABS = [
+  {id:'overview', label:'Overview'},
+  {id:'schedule', label:'Schedule'},
+  {id:'resources', label:'Resources'},
+  {id:'optimizer', label:'AI Optimizer'},
+  {id:'eva', label:'EVA Metrics'},
+  {id:'risks', label:'Risks'},
+  {id:'setup', label:'Setup'},
+];
+
+function genId(prefix){ return prefix + Math.random().toString(36).slice(2,8); }
+function nextTaskId(){
+  const nums = state.project.tasks.map(t=>parseInt((t.id.match(/\d+/)||['0'])[0])||0);
+  return 'T' + ((nums.length?Math.max(...nums):0)+1);
+}
+
+/* ============ CORE METRICS ============ */
+function computeMetrics(project){
+  const {tasks, resources, totalWeeks} = project;
+  const byResourceWeek = {};
+  resources.forEach(r=> byResourceWeek[r.id] = {});
+  tasks.forEach(t=>{
+    if(!byResourceWeek[t.resource]) return;
+    for(let w=t.start; w<t.start+t.dur; w++){
+      if(w<1||w>totalWeeks) continue;
+      (byResourceWeek[t.resource][w] = byResourceWeek[t.resource][w]||[]).push(t.id);
+    }
+  });
+  const conflicts = [];
+  resources.forEach(r=>{
+    for(let w=1; w<=totalWeeks; w++){
+      const ids = byResourceWeek[r.id][w]||[];
+      if(ids.length > r.capacity) conflicts.push({resource:r.id, week:w, taskIds:ids, over:ids.length-r.capacity});
+    }
+  });
+  let idleResourceWeeks=0, totalCapacityWeeks=0;
+  resources.forEach(r=>{
+    for(let w=1; w<=totalWeeks; w++){
+      totalCapacityWeeks += r.capacity;
+      const used = Math.min((byResourceWeek[r.id][w]||[]).length, r.capacity);
+      idleResourceWeeks += (r.capacity - used);
+    }
+  });
+  const conflictedTaskIds = new Set();
+  conflicts.forEach(c=> c.taskIds.forEach(id=>conflictedTaskIds.add(id)));
+  return { byResourceWeek, conflicts, conflictedTaskIds, idleResourceWeeks, totalCapacityWeeks,
+    idlePct: totalCapacityWeeks ? (idleResourceWeeks/totalCapacityWeeks*100) : 0 };
+}
+function resourceStatus(n){ if(n===0) return 'green'; if(n<=2) return 'amber'; return 'red'; }
+function resColor(rid){
+  const idx = state.project.resources.findIndex(r=>r.id===rid);
+  return PALETTE[idx>=0 ? idx % PALETTE.length : 0];
+}
+
+/* ============ RENDER SHELL ============ */
+function render(){
+  document.getElementById('projNameInput').value = state.project.name;
+  const nav = document.getElementById('nav');
+  nav.innerHTML = TABS.map(t=>`<button class="${state.activeTab===t.id?'active':''}" onclick="setTab('${t.id}')">${t.label}</button>`).join('');
+  const c = document.getElementById('content');
+  if(state.activeTab==='overview') c.innerHTML = renderOverview();
+  if(state.activeTab==='schedule') c.innerHTML = renderSchedule();
+  if(state.activeTab==='resources') c.innerHTML = renderResources();
+  if(state.activeTab==='optimizer') c.innerHTML = renderOptimizer();
+  if(state.activeTab==='eva') c.innerHTML = renderEVA();
+  if(state.activeTab==='risks') c.innerHTML = renderRisks();
+  if(state.activeTab==='setup') c.innerHTML = renderSetup();
+  renderChat();
+  renderSwitcher();
+  renderToast();
+}
+function setTab(id){ state.activeTab = id; render(); window.scrollTo({top:0}); }
+function renameProject(v){ state.project.name = v.trim() || 'Untitled Project'; render(); }
+function showToast(msg){ state.toastMsg = msg; render(); setTimeout(()=>{ if(state.toastMsg===msg){ state.toastMsg=null; render(); } }, 2200); }
+function renderToast(){ document.getElementById('toastHost').innerHTML = state.toastMsg ? `<div class="toast">${state.toastMsg}</div>` : ''; }
+
+/* ============ OVERVIEW ============ */
+function renderOverview(){
+  const p = state.project, m = computeMetrics(p);
+  const emptyBanner = p.tasks.length === 0 ? `
+  <div class="section card" style="border-color:var(--purple); display:flex; justify-content:space-between; align-items:center; gap:14px; flex-wrap:wrap;">
+    <div>
+      <h2 class="h" style="margin-bottom:4px;"><span class="h-left" style="color:var(--purple);">✦ This project is empty</span></h2>
+      <p class="small muted" style="margin:0;">Describe it in plain language and Claude will draft the WBS, tasks, and resources for you — no file upload needed.</p>
+    </div>
+    <button class="btn btn-ai" onclick="setTab('setup')">✦ Build with AI →</button>
+  </div>` : '';
+  return `
+  ${emptyBanner}
+  <div class="section">
+    <div class="grid grid-4">
+      <div class="card kpi"><div class="accent" style="background:var(--teal)"></div>
+        <div class="label">Total Tasks</div><div class="val">${p.tasks.length}</div>
+        <div class="sub">${[...new Set(p.tasks.map(t=>t.phase))].length} phases</div></div>
+      <div class="card kpi"><div class="accent" style="background:${m.conflicts.length? 'var(--red)':'var(--green)'}"></div>
+        <div class="label">Resource Conflicts</div><div class="val" style="color:${m.conflicts.length?'var(--red)':'var(--green)'}">${m.conflicts.length}</div>
+        <div class="sub">Resource-weeks over capacity</div></div>
+      <div class="card kpi"><div class="accent" style="background:var(--amber)"></div>
+        <div class="label">Idle Resource Time</div><div class="val">${m.idlePct.toFixed(1)}%</div>
+        <div class="sub">${m.idleResourceWeeks} of ${m.totalCapacityWeeks} resource-weeks</div></div>
+      <div class="card kpi"><div class="accent" style="background:var(--blue)"></div>
+        <div class="label">Project Span</div><div class="val">${p.totalWeeks}<span style="font-size:14px;color:var(--text-dim)"> wks</span></div>
+        <div class="sub">${p.resources.length} resource pools</div></div>
+    </div>
+  </div>
+
+  <div class="section grid grid-2">
+    <div class="card">
+      <h2 class="h"><span class="h-left">✦ How this tool works</span></h2>
+      <p class="small" style="line-height:1.7">Define any project as tasks assigned to shared resources with weekly capacity. A deterministic engine scans every resource-week to flag conflicts (over-allocation) and idle time; the <b>AI Optimizer</b> tab then calls Claude to propose the smallest set of schedule shifts that reduce both.</p>
+      <div style="margin-top:12px; display:flex; gap:8px; flex-wrap:wrap;">
+        <span class="chip"><span class="sig sig-green"></span>Edit freely in Schedule &amp; Setup</span>
+        <span class="chip"><span class="sig sig-amber"></span>Conflicts auto-detected</span>
+        <span class="chip"><span class="sig sig-red"></span>AI proposes fixes</span>
+      </div>
+    </div>
+    <div class="card">
+      <h2 class="h">⚠ Where the conflicts are</h2>
+      ${m.conflicts.length ? `<div class="small" style="line-height:1.8">${
+        [...new Set(m.conflicts.map(c=>c.resource))].map(rid=>{
+          const r = p.resources.find(x=>x.id===rid);
+          const count = m.conflicts.filter(c=>c.resource===rid).length;
+          return `<div style="display:flex; justify-content:space-between; padding:4px 0; border-bottom:1px solid var(--border-soft);"><span><span class="sig sig-red" style="margin-right:8px;"></span>${r?r.name:rid}</span><span class="mono muted">${count} wk${count>1?'s':''} over capacity</span></div>`;
+        }).join('')
+      }</div><div style="margin-top:12px;"><button class="btn btn-ai" onclick="setTab('optimizer')">✦ Resolve with AI Optimizer →</button></div>`
+      : `<p class="small muted">No resource conflicts detected in the current schedule.</p>`}
+    </div>
+  </div>`;
+}
+
+/* ============ SCHEDULE (GANTT + editing) ============ */
+function renderSchedule(){
+  const p = state.project, m = computeMetrics(p);
+  const phases = [...new Set(p.tasks.map(t=>t.phase))];
+  const resOptions = p.resources.map(r=>`<option value="${r.id}">${r.name}</option>`).join('');
+  const phaseList = phases.map(ph=>`<option value="${ph}"></option>`).join('');
+
+  let weekHeader = `<div class="g-row g-header"><div class="g-label">Task</div>` +
+    Array.from({length:p.totalWeeks},(_,i)=>`<div class="wk-tick">${i+1}</div>`).join('') + `</div>`;
+
+  let rows = '';
+  phases.forEach(ph=>{
+    rows += `<div class="g-row g-phase-row"><div class="g-label">${ph}</div>${Array.from({length:p.totalWeeks},()=>`<div class="week-col"></div>`).join('')}</div>`;
+    p.tasks.filter(t=>t.phase===ph).forEach(t=>{
+      const r = p.resources.find(x=>x.id===t.resource);
+      const conflicted = m.conflictedTaskIds.has(t.id);
+      rows += `<div class="g-row">
+        <div class="g-label">
+          <div class="tname"><span>${t.name}${conflicted?' <span class="sig sig-red" style="margin-left:4px;"></span>':''}</span><button class="x-del" onclick="deleteTask('${t.id}')" title="Delete task">✕</button></div>
+          <div class="tmeta">
+            <select onchange="updateTask('${t.id}','resource',this.value)">${p.resources.map(rr=>`<option value="${rr.id}" ${rr.id===t.resource?'selected':''}>${rr.name}</option>`).join('')}</select>
+            wk <input type="number" min="1" max="${p.totalWeeks}" value="${t.start}" onchange="updateTask('${t.id}','start',this.value)"/>
+            for <input type="number" min="1" max="20" value="${t.dur}" onchange="updateTask('${t.id}','dur',this.value)"/> wks
+          </div>
+        </div>
+        <div class="g-track" style="width:${p.totalWeeks*22}px;">
+          <div class="g-bar" style="left:${(t.start-1)*22}px; width:${t.dur*22-3}px; background:${resColor(r?r.id:'')};">
+            ${conflicted?'<div class="ring"></div>':''}${t.id}
+          </div>
+        </div>
+      </div>`;
+    });
+  });
+
+  return `
+  <div class="section">
+    <h2 class="h"><span class="h-left">✦ Schedule — ${p.name}</span><button class="btn btn-primary btn-sm" onclick="toggleAddTask()">${state.showAddTask?'Cancel':'+ Add Task'}</button></h2>
+    ${state.showAddTask ? `
+      <div class="addbar">
+        <label class="field"><span class="fl">Task Name</span><input type="text" id="natName" placeholder="e.g. Site survey"/></label>
+        <label class="field"><span class="fl">Phase</span><input type="text" id="natPhase" list="phaseList" placeholder="e.g. 1 · Initiation" value="${phases[0]||''}"/><datalist id="phaseList">${phaseList}</datalist></label>
+        <label class="field"><span class="fl">Resource</span><select id="natResource">${resOptions}</select></label>
+        <label class="field" style="max-width:80px;"><span class="fl">Start Wk</span><input type="number" id="natStart" min="1" max="${p.totalWeeks}" value="1"/></label>
+        <label class="field" style="max-width:80px;"><span class="fl">Duration</span><input type="number" id="natDur" min="1" max="20" value="1"/></label>
+        <button class="btn btn-primary" onclick="addTask()">Add</button>
+      </div>` : ''}
+    <p class="small muted" style="margin-top:-4px; margin-bottom:14px;">Red rings mark tasks caught in a resource conflict this week. Edit resource / start / duration inline — metrics recalculate live.</p>
+    <div class="gantt-wrap"><div style="min-width:${290+p.totalWeeks*22}px;">${weekHeader}${rows || '<div style="padding:20px;" class="muted small">No tasks yet — add one above.</div>'}</div></div>
+  </div>`;
+}
+function toggleAddTask(){ state.showAddTask = !state.showAddTask; render(); }
+function addTask(){
+  const name = document.getElementById('natName').value.trim();
+  const phase = document.getElementById('natPhase').value.trim() || 'Unassigned Phase';
+  const resource = document.getElementById('natResource').value;
+  const start = Math.max(1, parseInt(document.getElementById('natStart').value)||1);
+  const dur = Math.max(1, parseInt(document.getElementById('natDur').value)||1);
+  if(!name){ showToast('Task needs a name'); return; }
+  state.project.tasks.push({id:nextTaskId(), name, phase, resource, start, dur});
+  state.showAddTask = false;
+  render();
+}
+function deleteTask(id){
+  state.project.tasks = state.project.tasks.filter(t=>t.id!==id);
+  render();
+}
+function updateTask(id, field, value){
+  const t = state.project.tasks.find(x=>x.id===id);
+  if(field==='resource'){ t.resource = value; }
+  else { t[field] = Math.max(1, parseInt(value)||1); }
+  render();
+}
+
+/* ============ RESOURCES ============ */
+function renderResources(){
+  const p = state.project, m = computeMetrics(p);
+  const rows = p.resources.map(r=>{
+    const conflictWeeks = m.conflicts.filter(c=>c.resource===r.id).map(c=>c.week);
+    const status = resourceStatus(conflictWeeks.length);
+    const cells = Array.from({length:p.totalWeeks},(_,i)=>{
+      const w = i+1;
+      const used = (m.byResourceWeek[r.id][w]||[]).length;
+      let bg = 'var(--border-soft)';
+      if(used>0 && used<=r.capacity) bg = 'var(--teal)';
+      if(used>r.capacity) bg = 'var(--red)';
+      return `<div class="res-cell" style="background:${bg}" title="Week ${w}: ${used}/${r.capacity} in use"></div>`;
+    }).join('');
+    return `<div class="res-row">
+      <div class="res-name"><span class="sig sig-${status}"></span>${r.name}<div class="res-cap">cap ${r.capacity}/wk</div></div>
+      <div class="res-cells">${cells}</div>
+    </div>`;
+  }).join('');
+
+  return `
+  <div class="section">
+    <h2 class="h">✦ Resource Load — Signal Board</h2>
+    <p class="small muted" style="margin-top:-6px; margin-bottom:14px;">Green = clear, teal-filled = at capacity, red = conflict. Manage resource names and weekly capacity in the Setup tab.</p>
+    <div class="card">${rows || '<div class="small muted">No resources defined yet — add some in Setup.</div>'}</div>
+  </div>
+  <div class="section">
+    <h2 class="h">⚠ Conflict Detail</h2>
+    ${m.conflicts.length ? `<div class="grid grid-3">${m.conflicts.map(c=>{
+      const r = p.resources.find(x=>x.id===c.resource);
+      return `<div class="card" style="border-left:3px solid var(--red);">
+        <div class="mono small" style="color:var(--red); font-weight:700;">WEEK ${c.week}</div>
+        <div style="font-weight:600; margin:4px 0;">${r?r.name:c.resource}</div>
+        <div class="small muted">${c.taskIds.join(', ')} — ${c.taskIds.length} tasks vs capacity ${r?r.capacity:'?'}</div>
+      </div>`;
+    }).join('')}</div>` : `<p class="small muted">No conflicts — every resource is within weekly capacity.</p>`}
+  </div>`;
+}
+
+/* ============ AI OPTIMIZER ============ */
+function renderOptimizer(){
+  const p = state.project;
+  const current = computeMetrics(p);
+  const baseline = state.lastOptimize ? state.lastOptimize.baselineMetrics : null;
+  return `
+  <div class="section grid grid-2">
+    <div class="card">
+      <h2 class="h">✦ Baseline (Before AI)</h2>
+      <table class="eva-table">
+        <tr><td class="k">Resource conflicts</td><td class="v" style="color:var(--red)">${baseline?baseline.conflicts.length:current.conflicts.length}</td></tr>
+        <tr><td class="k">Idle resource time</td><td class="v">${(baseline?baseline.idlePct:current.idlePct).toFixed(1)}%</td></tr>
+      </table>
+    </div>
+    <div class="card">
+      <h2 class="h">✦ Current (${state.lastOptimize?'After AI':'= Baseline'})</h2>
+      <table class="eva-table">
+        <tr><td class="k">Resource conflicts</td><td class="v" style="color:${current.conflicts.length?'var(--red)':'var(--green)'}">${current.conflicts.length}</td></tr>
+        <tr><td class="k">Idle resource time</td><td class="v">${current.idlePct.toFixed(1)}%</td></tr>
+      </table>
+    </div>
+  </div>
+
+  <div class="section card">
+    <h2 class="h">✦ AI Schedule Optimization</h2>
+    <p class="small muted">Resolves conflicts and idle time in "${p.name}" by shifting task start weeks. Uses Claude for the reasoning when the AI bridge is connected, otherwise runs a built-in resource-leveling algorithm instantly — no setup required either way.</p>
+    <div style="display:flex; gap:10px; margin-top:12px; flex-wrap:wrap;">
+      <button class="btn btn-ai" onclick="runOptimize()" ${state.optimizing || !p.tasks.length ?'disabled':''}>${state.optimizing?'✦ Optimizing…':'✦ Run AI Optimization'}</button>
+      <button class="btn" onclick="resetToBaseline()">↺ Revert Last AI Changes</button>
+    </div>
+    ${state.optimizeError ? `<div class="small" style="color:var(--red); margin-top:10px;">${state.optimizeError}</div>` : ''}
+    ${state.lastOptimize ? `
+      <div style="margin-top:18px; padding-top:16px; border-top:1px solid var(--border);">
+        <div class="mono small" style="color:var(--purple); text-transform:uppercase; letter-spacing:.08em; margin-bottom:8px;">AI Rationale</div>
+        <p class="small" style="line-height:1.6;">${state.lastOptimize.rationale}</p>
+        <div class="mono small" style="color:var(--purple); text-transform:uppercase; letter-spacing:.08em; margin:14px 0 6px;">Adjustments Applied (${state.lastOptimize.adjustments.length})</div>
+        ${state.lastOptimize.adjustments.map(a=>`<div class="ai-diff"><span class="mono">${a.id}</span><span class="muted">${a.taskName||''}</span><span class="arrow">week ${a.from} → ${a.newStart}</span></div>`).join('')}
+      </div>` : ''}
+  </div>`;
+}
+
+async function runOptimize(){
+  const p = state.project;
+  state.optimizing = true; state.optimizeError = null; render();
+  const baselineMetrics = computeMetrics(p);
+
+  await checkBridge();
+  if(bridgeStatus === 'connected'){
+    try{
+      const payload = {
+        resources: p.resources.map(r=>({id:r.id, capacity:r.capacity})),
+        tasks: p.tasks.map(t=>({id:t.id, name:t.name, phase:t.phase, resource:t.resource, start:t.start, dur:t.dur})),
+        totalWeeks: p.totalWeeks,
+      };
+      const prompt = `You are a scheduling optimization engine for a project management tool. The current project is: "${p.name}".
+Given the tasks and resource weekly capacities below, identify tasks causing resource conflicts (a resource used by more concurrent tasks than its capacity in a given week) and long idle gaps for a resource, then propose NEW start weeks (integer >=1) for the smallest possible number of tasks to reduce conflicts and idle time. Respect the approximate order of phases (don't move a task drastically earlier than its phase's other tasks). Total project should not extend meaningfully past week ${p.totalWeeks}.
+
+DATA:
+${JSON.stringify(payload)}
+
+Respond with ONLY valid JSON (no markdown fences, no commentary) in exactly this shape:
+{"rationale":"<1-2 sentence explanation of the main changes>","adjustments":[{"id":"T18","newStart":12}]}
+Only include tasks whose start week you are actually changing.`;
+
+      const response = await fetch(AI_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 1000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      const data = await response.json();
+      let text = (data.content||[]).map(b=>b.text||'').join('\n').trim();
+      text = text.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
+      const parsed = JSON.parse(text);
+      const adjustments = (parsed.adjustments||[]).map(a=>{
+        const t = p.tasks.find(x=>x.id===a.id);
+        if(!t) return null;
+        const from = t.start;
+        t.start = Math.max(1, parseInt(a.newStart)||t.start);
+        return {id:a.id, taskName:t.name, from, newStart:t.start};
+      }).filter(Boolean);
+      state.lastOptimize = { rationale: '✦ Claude: ' + (parsed.rationale || 'Schedule adjusted to reduce conflicts.'), adjustments, baselineMetrics };
+      state.optimizing = false; render(); return;
+    }catch(err){ /* fall through to local engine below */ }
+  }
+
+  // Local fallback — deterministic resource-leveling, always available
+  const { tasks: newTasks, adjustments } = localOptimize(p);
+  p.tasks = newTasks;
+  state.lastOptimize = {
+    rationale: '⚙ Built-in resource-leveling engine (AI bridge offline): shifted conflicting tasks to the earliest week each resource had free capacity, respecting the project end date.',
+    adjustments, baselineMetrics,
+  };
+  state.optimizing = false;
+  render();
+}
+function resetToBaseline(){
+  if(!state.lastOptimize){ showToast('No changes to revert'); return; }
+  state.lastOptimize.adjustments.forEach(a=>{
+    const t = state.project.tasks.find(x=>x.id===a.id);
+    if(t) t.start = a.from;
+  });
+  state.lastOptimize = null; state.optimizeError = null;
+  render();
+}
+
+/* ============ EVA ============ */
+function renderEVA(){
+  const p = state.project, e = p.eva;
+  const plannedPct = Math.min(100, (e.week/p.totalWeeks*100));
+  const PV = e.bac * (plannedPct/100);
+  const EV = e.bac * (e.actualPct/100);
+  const AC = e.ac !== null && e.ac !== undefined ? e.ac : EV * 1.08;
+  const CV = EV - AC, SV = EV - PV;
+  const CPI = AC ? EV/AC : 0, SPI = PV ? EV/PV : 0;
+  const EAC = CPI ? e.bac/CPI : e.bac;
+  const ETC = EAC - AC;
+  const VAC = e.bac - EAC;
+
+  const costMsg = CV >= 0 ? `<span style="color:var(--green)">under budget</span>` : `<span style="color:var(--red)">over budget</span>`;
+  const schedMsg = SV >= 0 ? `<span style="color:var(--green)">ahead of schedule</span>` : `<span style="color:var(--red)">behind schedule</span>`;
+
+  return `
+  <div class="section grid grid-2">
+    <div class="card">
+      <h2 class="h">✦ Inputs</h2>
+      <div class="small muted" style="margin-bottom:6px;">Current Week: <b class="mono">${e.week}</b> / ${p.totalWeeks}</div>
+      <input type="range" min="1" max="${p.totalWeeks}" value="${e.week}" oninput="updateEva('week', this.value)"/>
+      <div class="small muted" style="margin:14px 0 6px;">Actual % Complete: <b class="mono">${e.actualPct}%</b></div>
+      <input type="range" min="0" max="100" value="${e.actualPct}" oninput="updateEva('actualPct', this.value)"/>
+      <div style="display:flex; gap:14px; margin-top:16px;">
+        <div style="flex:1;"><div class="small muted">Budget at Completion</div><input type="number" style="width:100%; margin-top:4px;" value="${e.bac}" onchange="updateEva('bac', this.value)"/></div>
+        <div style="flex:1;"><div class="small muted">Actual Cost to Date</div><input type="number" style="width:100%; margin-top:4px;" value="${AC.toFixed(1)}" onchange="updateEva('ac', this.value)"/></div>
+      </div>
+      <div class="small muted" style="margin-top:10px;">Units are whatever currency/scale your project uses — edit BAC to match.</div>
+    </div>
+    <div class="card">
+      <h2 class="h">✦ Earned Value Metrics</h2>
+      <table class="eva-table">
+        <tr><td class="k">Planned Value (PV)</td><td class="v">${PV.toFixed(1)}</td></tr>
+        <tr><td class="k">Earned Value (EV)</td><td class="v">${EV.toFixed(1)}</td></tr>
+        <tr><td class="k">Actual Cost (AC)</td><td class="v">${AC.toFixed(1)}</td></tr>
+        <tr><td class="k">Cost Variance (CV)</td><td class="v" style="color:${CV>=0?'var(--green)':'var(--red)'}">${CV>=0?'+':''}${CV.toFixed(1)}</td></tr>
+        <tr><td class="k">Schedule Variance (SV)</td><td class="v" style="color:${SV>=0?'var(--green)':'var(--red)'}">${SV>=0?'+':''}${SV.toFixed(1)}</td></tr>
+        <tr><td class="k">Cost Performance Index (CPI)</td><td class="v">${CPI.toFixed(2)}</td></tr>
+        <tr><td class="k">Schedule Performance Index (SPI)</td><td class="v">${SPI.toFixed(2)}</td></tr>
+        <tr><td class="k">Estimate at Completion (EAC)</td><td class="v">${EAC.toFixed(1)}</td></tr>
+        <tr><td class="k">Estimate to Complete (ETC)</td><td class="v">${ETC.toFixed(1)}</td></tr>
+        <tr><td class="k">Variance at Completion (VAC)</td><td class="v" style="color:${VAC>=0?'var(--green)':'var(--red)'}">${VAC>=0?'+':''}${VAC.toFixed(1)}</td></tr>
+      </table>
+    </div>
+  </div>
+  <div class="section card">
+    <h2 class="h">✦ Interpretation</h2>
+    <p class="small" style="line-height:1.7;">At week <b>${e.week}</b>, the project is <b>${Math.abs(CV).toFixed(1)} ${costMsg}</b> and <b>${Math.abs(SV).toFixed(1)} ${schedMsg}</b>. A CPI of <b class="mono">${CPI.toFixed(2)}</b> means every 1 unit spent has returned ${CPI.toFixed(2)} units of planned work; an SPI of <b class="mono">${SPI.toFixed(2)}</b> means the project is progressing at ${(SPI*100).toFixed(0)}% of the planned rate. At the current performance trend, total cost is forecast at <b>${EAC.toFixed(1)}</b> against a budget of ${e.bac}.</p>
+  </div>`;
+}
+function updateEva(field, value){
+  state.project.eva[field] = field==='week' ? parseInt(value) : parseFloat(value);
+  render();
+}
+
+/* ============ RISKS ============ */
+function renderRisks(){
+  const p = state.project;
+  return `
+  <div class="section">
+    <h2 class="h"><span class="h-left">✦ Risk Register — ${p.name}</span><button class="btn btn-primary btn-sm" onclick="openRiskModal()">+ Add Risk</button></h2>
+    <div class="grid grid-3">
+      ${p.risks.map((r,i)=>`
+        <div class="card risk-card">
+          <button class="x-del" onclick="deleteRisk(${i})">✕</button>
+          <h3>${r.title}</h3>
+          <div class="small muted" style="line-height:1.5;">${r.risk}</div>
+          <div class="lbl">Mitigation Strategy</div>
+          <ul>${r.strategy.map(s=>`<li>${s}</li>`).join('')}</ul>
+        </div>`).join('') || '<p class="small muted">No risks logged yet — add one, or ask the AI Assistant to draft a risk register for this project.</p>'}
+    </div>
+  </div>`;
+}
+function openRiskModal(){
+  const body = document.getElementById('content');
+  const modal = document.createElement('div');
+  modal.className = 'modal-bg';
+  modal.innerHTML = `<div class="modal">
+    <h2 class="h">✦ Add Risk</h2>
+    <label class="field"><span class="fl">Title</span><input type="text" id="rTitle" placeholder="e.g. Vendor Delay"/></label>
+    <label class="field"><span class="fl">Risk Description</span><textarea id="rDesc" rows="3"></textarea></label>
+    <label class="field"><span class="fl">Mitigation Strategy (one per line)</span><textarea id="rStrat" rows="4"></textarea></label>
+    <div style="display:flex; gap:8px; justify-content:flex-end;">
+      <button class="btn" onclick="this.closest('.modal-bg').remove()">Cancel</button>
+      <button class="btn btn-primary" onclick="submitRisk(this)">Add Risk</button>
+    </div>
+  </div>`;
+  document.body.appendChild(modal);
+}
+function submitRisk(btn){
+  const title = document.getElementById('rTitle').value.trim();
+  const risk = document.getElementById('rDesc').value.trim();
+  const strategy = document.getElementById('rStrat').value.split('\n').map(s=>s.trim()).filter(Boolean);
+  if(!title){ showToast('Risk needs a title'); return; }
+  state.project.risks.push({title, risk, strategy});
+  btn.closest('.modal-bg').remove();
+  render();
+}
+function deleteRisk(i){ state.project.risks.splice(i,1); render(); }
+
+/* ============ SETUP (project meta, resources) ============ */
+function renderSetup(){
+  const p = state.project;
+  return `
+  <div class="section card" style="border-color:var(--purple);">
+    <h2 class="h"><span class="h-left" style="color:var(--purple);">✦ Build a Project with AI</span></h2>
+    <p class="small muted">No file needed — describe the project in plain language. If the AI bridge is connected, Claude drafts it; otherwise a built-in template engine generates it instantly, right here in the app. Either way you get a full Work Breakdown Structure, task schedule, and resource pools you can edit afterward.</p>
+    <label class="field" style="margin-top:10px;"><span class="fl">Project Description</span><textarea id="genDesc" rows="4" placeholder="e.g. Launching a 5-person mobile app team building a grocery delivery app MVP over 3 months, covering design, backend, mobile dev, QA, and app store launch.">${state.lastGenDesc||''}</textarea></label>
+    <div style="display:flex; gap:14px; align-items:flex-end; flex-wrap:wrap;">
+      <label class="field" style="max-width:160px; margin-bottom:0;"><span class="fl">Target Duration (weeks, optional)</span><input type="number" id="genWeeks" min="1" max="200" placeholder="AI decides"/></label>
+      <label class="field" style="max-width:200px; margin-bottom:0;"><span class="fl">Include risk register?</span>
+        <select id="genRisks"><option value="yes">Yes</option><option value="no">No</option></select>
+      </label>
+      <button class="btn btn-ai" onclick="generateProjectWithAI()" ${state.generating?'disabled':''}>${state.generating?'✦ Generating…':'✦ Generate Project'}</button>
+    </div>
+    ${state.generateError ? `<div class="small" style="color:var(--red); margin-top:10px;">${state.generateError}</div>` : ''}
+    <div class="small muted" style="margin-top:10px;">This replaces the current project below — export first if you want to keep it.</div>
+  </div>
+
+  <div class="section grid grid-2">
+    <div class="card">
+      <h2 class="h">✦ Project Settings</h2>
+      <label class="field"><span class="fl">Project Name</span><input type="text" value="${p.name}" onchange="renameProject(this.value)"/></label>
+      <label class="field"><span class="fl">Total Planning Horizon (weeks)</span><input type="number" min="1" max="200" value="${p.totalWeeks}" onchange="updateTotalWeeks(this.value)"/></label>
+      <div class="small muted">Shrinking the horizon will clip any tasks scheduled past the new end date.</div>
+    </div>
+    <div class="card">
+      <h2 class="h">✦ Load a Template</h2>
+      <p class="small muted">Swap in example data, or start from a blank project. This replaces the current project — export first if you want to keep it.</p>
+      <div style="display:flex; gap:8px; margin-top:10px;">
+        <button class="btn" onclick="loadTemplate('crl')">Load CRL Example</button>
+        <button class="btn" onclick="loadTemplate('blank')">Start Blank Project</button>
+      </div>
+    </div>
+  </div>
+
+  <div class="section card">
+    <h2 class="h"><span class="h-left">✦ Resources</span><button class="btn btn-primary btn-sm" onclick="addResource()">+ Add Resource</button></h2>
+    ${p.resources.map((r,i)=>`
+      <div class="res-row" style="align-items:center;">
+        <input type="text" style="width:220px;" value="${r.name}" onchange="updateResource(${i},'name',this.value)"/>
+        <span class="small muted">capacity</span>
+        <input type="number" min="1" max="50" style="width:60px;" value="${r.capacity}" onchange="updateResource(${i},'capacity',this.value)"/>
+        <span class="small muted mono">/ week</span>
+        <button class="x-del btn-sm btn" style="margin-left:auto;" onclick="deleteResource(${i})">Delete</button>
+      </div>`).join('') || '<p class="small muted">No resources yet.</p>'}
+  </div>`;
+}
+function updateTotalWeeks(v){
+  const n = Math.max(1, parseInt(v)||1);
+  state.project.totalWeeks = n;
+  state.project.tasks.forEach(t=>{ if(t.start > n) t.start = n; if(t.start+t.dur-1 > n) t.dur = Math.max(1, n - t.start + 1); });
+  render();
+}
+function addResource(){
+  state.project.resources.push({id: genId('res-'), name:'New Resource', capacity:1});
+  render();
+}
+function updateResource(i, field, value){
+  const r = state.project.resources[i];
+  if(field==='capacity') r.capacity = Math.max(1, parseInt(value)||1);
+  else r.name = value;
+  render();
+}
+function deleteResource(i){
+  const r = state.project.resources[i];
+  const inUse = state.project.tasks.some(t=>t.resource===r.id);
+  if(inUse){ showToast('Reassign or delete tasks using this resource first'); return; }
+  state.project.resources.splice(i,1);
+  render();
+}
+function loadTemplate(key){
+  state.project = JSON.parse(JSON.stringify(key==='crl' ? CRL_TEMPLATE : BLANK_TEMPLATE));
+  state.projectId = null; state.lastOptimize = null; state.optimizeError = null;
+  render();
+  showToast('Template loaded — remember to Save if you want to keep it');
+}
+
+async function generateProjectWithAI(){
+  const desc = document.getElementById('genDesc').value.trim();
+  const targetWeeks = document.getElementById('genWeeks').value;
+  const includeRisks = document.getElementById('genRisks').value === 'yes';
+  if(!desc){ showToast('Describe the project first'); return; }
+  state.lastGenDesc = desc;
+  state.generating = true; state.generateError = null; render();
+
+  await checkBridge();
+  if(bridgeStatus === 'connected'){
+    try{
+      const prompt = `You are a project management assistant setting up a brand-new project workspace from scratch — no existing data.
+
+PROJECT DESCRIPTION (from the user): "${desc}"
+${targetWeeks ? `TARGET DURATION: ${targetWeeks} weeks.` : 'Choose a realistic total duration in weeks for a project like this.'}
+${includeRisks ? 'Include a short risk register (3-6 entries).' : 'Do not include a risk register (return an empty array).'}
+
+Build a complete Work Breakdown Structure and schedule for this project:
+- Group tasks into logical phases (name them appropriately for THIS project's domain — do not force generic phases if the project calls for something more specific).
+- Define 3-8 resource pools (teams/roles/equipment relevant to this project), each with a realistic weekly capacity (how many concurrent tasks that resource can handle).
+- Create 12-30 tasks, each assigned to one resource, with a start week (integer >=1) and duration in weeks, sequenced sensibly across phases so the schedule roughly fits the total duration.
+- If risks are requested, give each a title, a one-sentence risk description, and 2-4 concrete mitigation steps.
+
+Respond with ONLY valid JSON (no markdown fences, no commentary) in exactly this shape:
+{
+  "name": "<short project name>",
+  "totalWeeks": <integer>,
+  "resources": [{"name": "<resource/team name>", "capacity": <integer>}],
+  "tasks": [{"name": "<task name>", "phase": "<phase name>", "resourceName": "<must match a resources[].name>", "start": <integer>, "dur": <integer>}],
+  "risks": [{"title": "<risk title>", "risk": "<one sentence>", "strategy": ["<step>", "<step>"]}]
+}`;
+      const response = await fetch(AI_ENDPOINT, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          model: "claude-sonnet-4-6",
+          max_tokens: 4000,
+          messages: [{ role: "user", content: prompt }]
+        })
+      });
+      const data = await response.json();
+      let text = (data.content||[]).map(b=>b.text||'').join('\n').trim();
+      text = text.replace(/^```json\s*/i,'').replace(/```$/,'').trim();
+      const parsed = JSON.parse(text);
+      if(!parsed.resources || !parsed.tasks || !parsed.resources.length) throw new Error('AI response was missing resources or tasks');
+
+      const resources = parsed.resources.map(r=>({ id: genId('res-'), name: r.name || 'Team', capacity: Math.max(1, parseInt(r.capacity)||1) }));
+      const nameToId = {};
+      resources.forEach(r=> nameToId[r.name.toLowerCase().trim()] = r.id);
+      const totalWeeks = Math.max(1, parseInt(parsed.totalWeeks) || (targetWeeks?parseInt(targetWeeks):12));
+      let counter = 0;
+      const tasks = (parsed.tasks||[]).map(t=>{
+        counter++;
+        const rid = nameToId[(t.resourceName||'').toLowerCase().trim()] || resources[0].id;
+        const start = Math.min(totalWeeks, Math.max(1, parseInt(t.start)||1));
+        const dur = Math.max(1, parseInt(t.dur)||1);
+        return { id:'T'+counter, name: t.name || ('Task '+counter), phase: t.phase || 'Unassigned Phase', resource: rid, start, dur };
+      });
+      const risks = includeRisks ? (parsed.risks||[]).map(r=>({
+        title: r.title || 'Risk', risk: r.risk || '', strategy: Array.isArray(r.strategy) ? r.strategy : [],
+      })) : [];
+
+      state.project = { name: parsed.name || 'New Project', totalWeeks, resources, tasks, risks, eva: { week: 1, actualPct: 0, bac: 100, ac: null } };
+      state.projectId = null; state.lastOptimize = null;
+      state.generating = false; state.generateError = null;
+      render();
+      showToast('✦ Project generated by Claude — review and edit as needed');
+      setTab('schedule');
+      return;
+    }catch(err){ /* fall through to local engine below */ }
+  }
+
+  // Local fallback — always works, no network required
+  try{
+    state.project = localGenerateProject(desc, targetWeeks, includeRisks);
+    state.projectId = null; state.lastOptimize = null;
+    state.generating = false; state.generateError = null;
+    render();
+    showToast(bridgeStatus==='connected' ? 'Generated locally (Claude response was unusable)' : '⚙ Generated locally — AI bridge offline, using built-in templates');
+    setTab('schedule');
+  }catch(err){
+    state.generating = false;
+    state.generateError = 'Could not generate a project from that description — try adding the project type, team size, or duration.';
+    render();
+  }
+}
+
+/* ============ EXPORT / IMPORT ============ */
+function exportProject(){
+  const blob = new Blob([JSON.stringify(state.project, null, 2)], {type:'application/json'});
+  const url = URL.createObjectURL(blob);
+  const a = document.createElement('a');
+  a.href = url; a.download = (state.project.name||'project').replace(/[^a-z0-9]+/gi,'_').toLowerCase() + '.json';
+  a.click();
+  URL.revokeObjectURL(url);
+}
+function importProject(evt){
+  const file = evt.target.files[0];
+  if(!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    try{
+      const parsed = JSON.parse(reader.result);
+      if(!parsed.tasks || !parsed.resources) throw new Error('missing tasks/resources');
+      state.project = Object.assign(JSON.parse(JSON.stringify(BLANK_TEMPLATE)), parsed);
+      state.projectId = null; state.lastOptimize = null; state.optimizeError = null;
+      render();
+      showToast('Project imported');
+    }catch(e){ showToast('Import failed — not a valid project file'); }
+  };
+  reader.readAsText(file);
+  evt.target.value = '';
+}
+
+/* ============ PERSISTENCE (window.storage) ============ */
+async function refreshIndex(){
+  try{
+    const r = await window.storage.get('project_index');
+    state.savedIndex = r && r.value ? JSON.parse(r.value) : [];
+  }catch(e){ state.savedIndex = []; }
+}
+async function saveProject(){
+  try{
+    if(!state.projectId) state.projectId = genId('proj-');
+    await window.storage.set('project:'+state.projectId, JSON.stringify(state.project));
+    await refreshIndex();
+    const existing = state.savedIndex.find(x=>x.id===state.projectId);
+    if(existing) existing.name = state.project.name;
+    else state.savedIndex.push({id: state.projectId, name: state.project.name});
+    await window.storage.set('project_index', JSON.stringify(state.savedIndex));
+    showToast('Saved to your browser');
+  }catch(e){ showToast('Save failed: '+e.message); }
+  render();
+}
+async function loadProjectById(id){
+  try{
+    const r = await window.storage.get('project:'+id);
+    state.project = JSON.parse(r.value);
+    state.projectId = id; state.lastOptimize = null; state.optimizeError = null;
+    render();
+    showToast('Project loaded');
+  }catch(e){ showToast('Could not load that project'); }
+}
+function renderSwitcher(){
+  const sel = document.getElementById('projSwitcher');
+  const opts = [`<option value="">${state.projectId?'— switch project —':'— unsaved draft —'}</option>`]
+    .concat(state.savedIndex.map(p=>`<option value="${p.id}" ${p.id===state.projectId?'selected':''}>${p.name}</option>`));
+  sel.innerHTML = opts.join('');
+}
+function onSwitcherChange(id){ if(id) loadProjectById(id); }
+
+/* ============ CHAT ============ */
+function toggleChat(){ state.chatOpen = !state.chatOpen; render(); }
+function renderChat(){
+  const panel = document.getElementById('chatPanel');
+  const fab = document.getElementById('chatFab');
+  fab.style.display = state.chatOpen ? 'none' : 'flex';
+  if(!state.chatOpen){ panel.style.display='none'; return; }
+  panel.style.display = 'flex';
+  panel.innerHTML = `
+    <div class="chat-head"><span class="t">✦ AI Assistant</span><button class="close-x" onclick="toggleChat()">✕</button></div>
+    <div class="chat-body" id="chatBody">
+      ${state.chatMessages.length===0 ? `<div class="msg hint">Ask about this project's schedule, resource conflicts, EVA figures, or risks.</div>` : ''}
+      ${state.chatMessages.map(m=>`<div class="msg ${m.role==='user'?'user':'ai'}">${escapeHtml(m.content)}</div>`).join('')}
+      ${state.chatLoading ? `<div class="msg hint">thinking…</div>` : ''}
+    </div>
+    <div class="chat-input">
+      <input type="text" id="chatInput" placeholder="Ask a question…" onkeydown="if(event.key==='Enter')sendChat()"/>
+      <button class="btn btn-primary" onclick="sendChat()">Send</button>
+    </div>`;
+  const body = document.getElementById('chatBody');
+  if(body) body.scrollTop = body.scrollHeight;
+}
+function escapeHtml(s){ return s.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;'); }
+
+async function sendChat(){
+  const input = document.getElementById('chatInput');
+  const text = input.value.trim();
+  if(!text || state.chatLoading) return;
+  state.chatMessages.push({role:'user', content:text});
+  input.value='';
+  state.chatLoading = true;
+  render();
+
+  const p = state.project, m = computeMetrics(p);
+  const contextSummary = `Project: "${p.name}" — ${p.totalWeeks}-week planning horizon.
+Tasks: ${p.tasks.length}, across phases: ${[...new Set(p.tasks.map(t=>t.phase))].join(', ') || 'none'}.
+Resources: ${p.resources.map(r=>r.name+' (cap '+r.capacity+'/wk)').join(', ') || 'none'}.
+Current conflicts: ${m.conflicts.length} (${m.conflicts.map(c=>{const r=p.resources.find(x=>x.id===c.resource); return (r?r.name:c.resource)+' wk'+c.week;}).join('; ') || 'none'}).
+Idle resource time: ${m.idlePct.toFixed(1)}%.
+Known risks: ${p.risks.map(r=>r.title).join(', ') || 'none logged'}.
+Answer as a helpful project management assistant for this project. Be concise (under 120 words) unless asked for detail.`;
+
+  try{
+    const response = await fetch(AI_ENDPOINT, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        model: "claude-sonnet-4-6",
+        max_tokens: 1000,
+        system: contextSummary,
+        messages: state.chatMessages.map(mm=>({role:mm.role, content:mm.content}))
+      })
+    });
+    const data = await response.json();
+    const reply = (data.content||[]).map(b=>b.text||'').join('\n').trim() || 'No response.';
+    state.chatMessages.push({role:'assistant', content:reply});
+  }catch(err){
+    state.chatMessages.push({role:'assistant', content:'Could not reach Claude right now (' + err.message + '). The rest of the app still works — try again in a moment.'});
+  }
+  state.chatLoading = false;
+  render();
+}
+
+/* ============ INIT ============ */
+(async function init(){
+  render();
+  renderBridgeBadge();
+  checkBridge();
+  await refreshIndex();
+  renderSwitcher();
+})();
+</script>
+</body>
+</html>
